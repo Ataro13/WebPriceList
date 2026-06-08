@@ -1,0 +1,11 @@
+# Temp Python scripts
+*.py
+!LOGO.jpg
+
+# Playwright MCP
+.playwright-mcp/
+
+# Generated docs
+Pricelist.docx
+Pricelist.md
+Pricelist.html
