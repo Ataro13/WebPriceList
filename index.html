@@ -626,11 +626,6 @@ document.querySelectorAll('.service-card').forEach(card => {
   });
 
 });
-      updateTotal();
-    }
-  });
-  if(radio.checked) card.classList.add('checked');
-});
 
 // ═══ TOTAL CALC ═══
 function updateTotal(){
@@ -653,10 +648,72 @@ function updateTotal(){
 }
 updateTotal();
 
-// ═══ last-minute subject tweak ═══
-document.getElementById('orderForm').addEventListener('submit', function(){
+// ═══ FORM SUBMIT → Telegram ═══
+document.getElementById('orderForm').addEventListener('submit', function(e){
+  e.preventDefault();
+
   const name = this.querySelector('input[name="name"]').value || 'без имени';
-  this.querySelector('input[name="_subject"]').value = 'Новая заявка — ' + name;
+  const phone = this.querySelector('input[name="phone"]').value || 'не указан';
+  const email = this.querySelector('input[name="email"]').value || 'не указан';
+  const comment = this.querySelector('textarea[name="comment"]').value || '—';
+
+  // Выбранные услуги
+  const items = [];
+  document.querySelectorAll('.service-card.checked').forEach(function(card){
+    items.push(card.querySelector('input').value);
+  });
+  const services = items.length ? items.join('\n') : '—';
+  const totalEl = document.getElementById('totalAmount');
+  const total = totalEl ? totalEl.textContent : '—';
+
+  const msg =
+    '<b>Новая заявка с прайс-листа</b>\n\n' +
+    '<b>Имя:</b> ' + name + '\n' +
+    '<b>Телефон:</b> ' + phone + '\n' +
+    '<b>Email:</b> ' + email + '\n\n' +
+    '<b>Услуги:</b>\n' + services + '\n\n' +
+    '<b>Комментарий:</b> ' + comment + '\n' +
+    '<b>Сумма:</b> ' + total;
+
+  // ══ НАСТРОЙКА TELEGRAM ══
+  // 1. Напиши @BotFather → создай бота → получи TOKEN
+  // 2. Напиши своему боту любое сообщение
+  // 3. Открой в браузере: https://api.telegram.org/bot<TOKEN>/getUpdates
+  // 4. Скопируй "chat":{"id": ЧИСЛО} из ответа
+  // 5. Вставь TOKEN и CHAT_ID ниже
+  const TG_TOKEN = 'ТВОЙ_ТОКЕН_СЮДА';
+  const TG_CHAT_ID = 'ТВОЙ_CHAT_ID_СЮДА';
+
+  // Если токен не настроен → formsubmit
+  if(TG_TOKEN === 'ТВОЙ_ТОКЕН_СЮДА'){
+    return this.submit();
+  }
+
+  // Пробуем Telegram
+  fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      chat_id: TG_CHAT_ID,
+      text: msg,
+      parse_mode: 'HTML'
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(data.ok){
+      document.getElementById('orderForm').reset();
+      document.querySelectorAll('.service-card.checked').forEach(function(c){ c.classList.remove('checked'); });
+      updateTotal();
+      alert('Заявка отправлена! Я свяжусь с вами в ближайшее время.');
+    } else {
+      // Telegram не настроен → formsubmit
+      this.submit();
+    }
+  }.bind(this))
+  .catch(function(){
+    this.submit();
+  }.bind(this));
 });
 
 // ═══ PHONE MASK ═══
